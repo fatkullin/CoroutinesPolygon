@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="TaskManager">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="AbstractOperation">
+      <UniqueIdentifier>{081b79a2-42a0-4bef-b7d4-4f4deb27bcf8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="TaskManager.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="Worker.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="TaskExecutor.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="LockFreePtrQueue.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="TaskFuture.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="Task.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="InitialWorkerTask.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="SleepInitialWorkerTask.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="AsyncWaitInitialWorkerTask.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="AsyncOperation.h">
+      <Filter>TaskManager</Filter>
+    </ClInclude>
+    <ClInclude Include="MyOperation.h">
+      <Filter>AbstractOperation</Filter>
+    </ClInclude>
+    <ClInclude Include="OperationBase.h">
+      <Filter>AbstractOperation</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenFileOperation.h">
+      <Filter>AbstractOperation</Filter>
+    </ClInclude>
+    <ClInclude Include="ReadFileOperation.h">
+      <Filter>AbstractOperation</Filter>
+    </ClInclude>
+    <ClInclude Include="File.h">
+      <Filter>AbstractOperation</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TaskManager.cpp">
+      <Filter>TaskManager</Filter>
+    </ClCompile>
+    <ClCompile Include="Worker.cpp">
+      <Filter>TaskManager</Filter>
+    </ClCompile>
+    <ClCompile Include="TaskExecutor.cpp">
+      <Filter>TaskManager</Filter>
+    </ClCompile>
+    <ClCompile Include="LockFreePtrQueue.cpp">
+      <Filter>TaskManager</Filter>
+    </ClCompile>
+    <ClCompile Include="TaskFuture.cpp">
+      <Filter>TaskManager</Filter>
+    </ClCompile>
+    <ClCompile Include="Task.cpp">
+      <Filter>TaskManager</Filter>
+    </ClCompile>
+    <ClCompile Include="SleepInitialWorkerTask.cpp">
+      <Filter>TaskManager</Filter>
+    </ClCompile>
+    <ClCompile Include="AsyncWaitInitialWorkerTask.cpp">
+      <Filter>TaskManager</Filter>
+    </ClCompile>
+    <ClCompile Include="AsyncOperation.cpp">
+      <Filter>TaskManager</Filter>
+    </ClCompile>
+    <ClCompile Include="MyOperation.cpp">
+      <Filter>AbstractOperation</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OperationBase.cpp">
+      <Filter>AbstractOperation</Filter>
+    </ClCompile>
+    <ClCompile Include="OpenFileOperation.cpp">
+      <Filter>AbstractOperation</Filter>
+    </ClCompile>
+    <ClCompile Include="ReadFileOperation.cpp">
+      <Filter>AbstractOperation</Filter>
+    </ClCompile>
+    <ClCompile Include="File.cpp">
+      <Filter>AbstractOperation</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
