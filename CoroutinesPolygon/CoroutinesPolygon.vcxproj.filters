@@ -69,6 +69,9 @@
     <ClInclude Include="File.h">
       <Filter>AbstractOperation</Filter>
     </ClInclude>
+    <ClInclude Include="ResultFuture.h">
+      <Filter>AbstractOperation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -4,6 +4,7 @@
 #include "LockFreePtrQueue.h"
 #include "TaskFuture.h"
 #include "Task.h"
+#include "ResultFuture.h"
 
 #include <memory>
 #include <mutex>

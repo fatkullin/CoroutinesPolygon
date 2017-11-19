@@ -19,7 +19,7 @@ namespace AO
 
     struct SharedState
     {
-        LockFreePtrQueue<Task> Continuation;
+        std::atomic<Task*> Continuation = nullptr;
         std::atomic<FutureState> State = FutureState::Initial;
 
         void Set();
@@ -78,22 +78,6 @@ namespace AO
         void SetReady() const;
     private:
         SharedStatePtr_t m_sharedState;
-    };
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-
-    template <class T>
-    class ResultFuture
-    {
-    public:
-        ResultFuture(std::unique_ptr<Future> taskFuture, std::future<T> result)
-            : TaskFuture(std::move(taskFuture))
-            , Result(std::move(result))
-        {
-        }
-
-        std::unique_ptr<Future> TaskFuture;
-        std::future<T> Result;
     };
 
 }

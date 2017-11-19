@@ -9,21 +9,7 @@ namespace AO
     {
         auto const executionResult = task->Execute();
 
-        if (executionResult == ChildTaskCreated)
-        {
-            auto const child = task->Child;
-
-            return child;
-        }
-        else if (executionResult == CompletedWithChildTask)
-        {
-            auto const child = task->Child;
-            task->Promise.SetReady();
-
-            task = nullptr;
-            return child;
-        }
-        else if (executionResult == AsyncOperationRun)
+		if (executionResult == AsyncOperationRun)
         {
             task = nullptr;
             return nullptr;
@@ -58,6 +44,11 @@ namespace AO
                 return nullptr;
             }
         }
+		else if (executionResult == CompletedCoroutine)
+		{
+			task = nullptr;
+			return nullptr;
+		}
         else // state = yielded
         {
             auto const result = task;

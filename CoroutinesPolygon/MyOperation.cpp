@@ -2,6 +2,8 @@
 #include "MyOperation.h"
 #include "OpenFileOperation.h"
 #include "ReadFileOperation.h"
+#include <experimental/coroutine>
+
 
 namespace AO
 {
@@ -12,6 +14,23 @@ namespace AO
         {
             a *= sqrt(i);
         }
+    }
+
+    std::future<int> MyTaskAsync(std::shared_ptr<AO::TaskManager> taskManager, std::wstring filePath)
+    {
+        CAtlFile cAtlFile;
+        HRESULT hr = cAtlFile.Create(filePath.c_str(),
+            GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_OVERLAPPED);
+        
+        auto file = File(std::move(cAtlFile));
+
+        auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file), taskManager->CompletionPort);
+
+        auto readFuture = taskManager->AddNewOperation(std::move(readFileOperation));
+
+        auto data = co_await readFuture;
+
+        co_return (int)data[0];
     }
 
     MyTask::MyTask(std::shared_ptr<AO::TaskManager> taskManager,
