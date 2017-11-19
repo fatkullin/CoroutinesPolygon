@@ -8,6 +8,10 @@ namespace AO
     std::future<int> MyTaskAsync(std::shared_ptr<AO::TaskManager> taskManager,
         std::wstring filePath);
 
+    std::unique_ptr<TypedTask<int>> GetMyTask(std::shared_ptr<AO::TaskManager> taskManager,
+        std::wstring filePath);
+
+
     struct MyTask : AO::OperationBase<MyTask, int>
     {
         MyTask(std::shared_ptr<AO::TaskManager> taskManager,

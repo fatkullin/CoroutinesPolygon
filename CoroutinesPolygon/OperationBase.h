@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Task.h"
 #include "AsyncOperation.h"
+#include <experimental/coroutine>
 
 namespace AO
 {
@@ -21,19 +22,62 @@ namespace AO
         Completed,
     };
 
-    template <class TDerived, class T>
-    struct OperationBase : public Task
-    {
+	template <class T>
+	struct TypedTask : public Task
+	{
         using Result_t = T;
 
-        OperationBase() : m_state(TaskState::Creating)
+        TypedTask()
+            : m_coroHandle(nullptr)
         {
-            m_step = &TDerived::Run;
+            
         }
 
-        std::future<T> GetFuture()
+	    TypedTask(std::future<T> value)
+            : m_future(std::move(value))
         {
-            return m_promise.get_future();
+            
+        }
+
+		std::future<T> GetFuture()
+		{
+            return std::move(m_future);
+		}
+
+        virtual AO::TaskExecutionResult Execute() override
+        {
+            m_coroHandle.resume();
+            return m_executionResult;
+        }
+
+        virtual void Cancel() override
+        {
+            // TODO: set cancelled exception
+            throw std::runtime_error("Cancelled");
+        }
+
+        // TODO: make interface for task promise
+        std::experimental::coroutine_handle<> m_coroHandle;
+        // TODO: set completed result on co_return //or final_suspend???
+        AO::TaskExecutionResult m_executionResult = WaitForOtherTask;
+	protected:
+        void SetFuture(std::future<T> value)
+        {
+            m_future = std::move(value);
+        }
+
+	private:
+        std::future<T> m_future;
+	};
+
+    template <class TDerived, class T>
+    struct OperationBase : public TypedTask<T>
+    {
+        OperationBase() 
+            : m_state(TaskState::Creating)
+        {
+            SetFuture(m_promise.get_future());
+            m_step = &TDerived::Run;
         }
 
         virtual AO::TaskExecutionResult Execute() override

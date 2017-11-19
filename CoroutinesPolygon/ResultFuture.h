@@ -44,6 +44,10 @@ namespace AO
 		{
 		}
 
+		T get()
+		{
+			return Result.get();
+		}
 		constexpr bool await_ready() const noexcept
 		{
 			return false;

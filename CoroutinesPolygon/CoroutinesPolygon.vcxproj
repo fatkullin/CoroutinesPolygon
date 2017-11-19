@@ -165,6 +165,7 @@
     <ClInclude Include="TaskExecutor.h" />
     <ClInclude Include="TaskFuture.h" />
     <ClInclude Include="TaskManager.h" />
+    <ClInclude Include="TypedTaskCoroTraits.h" />
     <ClInclude Include="Worker.h" />
   </ItemGroup>
   <ItemGroup>

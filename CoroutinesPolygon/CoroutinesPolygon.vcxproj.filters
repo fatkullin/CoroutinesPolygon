@@ -72,6 +72,9 @@
     <ClInclude Include="ResultFuture.h">
       <Filter>AbstractOperation</Filter>
     </ClInclude>
+    <ClInclude Include="TypedTaskCoroTraits.h">
+      <Filter>AbstractOperation</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
