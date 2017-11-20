@@ -35,20 +35,19 @@ namespace AO
 	std::unique_ptr<TypedTask<int>> GetMyTask(std::shared_ptr<AO::TaskManager> taskManager, std::wstring filePath)
     {
         //DoSyncWork();
-		//CAtlFile cAtlFile;
-		//HRESULT hr = cAtlFile.Create(filePath.c_str(),
-		//	GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_OVERLAPPED);
+		CAtlFile cAtlFile;
+		HRESULT hr = cAtlFile.Create(filePath.c_str(),
+			GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_OVERLAPPED);
 
-		//auto file = File(std::move(cAtlFile));
+		auto file = File(std::move(cAtlFile));
 
-		//auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file), taskManager->CompletionPort);
+		auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file), taskManager->CompletionPort);
 
-		//auto readFuture = taskManager->AddNewOperation(std::move(readFileOperation));
+		auto readFuture = taskManager->AddNewOperation(std::move(readFileOperation));
 
-		//auto data = co_await readFuture;
+		auto data = co_await readFuture;
 
-		//co_return (int)data[0];
-        co_return 123;
+		co_return (int)data[0];
     }
 
     MyTask::MyTask(std::shared_ptr<AO::TaskManager> taskManager,

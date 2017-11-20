@@ -15,10 +15,9 @@ namespace AO
 
 		}
 
-		TaskExecutionResult Execute() override
+		void Execute(Task**) override
 		{
 			m_awaiter.resume();
-			return TaskExecutionResult::CompletedCoroutine;
 		}
 
 		void Cancel() override

@@ -27,6 +27,8 @@ namespace AO
 	{
         using Result_t = T;
 
+		Task* NextTask = nullptr;							// childTask or continuation
+
         TypedTask()
             : m_coroHandle(nullptr)
         {
@@ -44,10 +46,11 @@ namespace AO
             return std::move(m_future);
 		}
 
-        virtual AO::TaskExecutionResult Execute() override
+        virtual void Execute(Task** nextTask) override
         {
+			NextTask = nullptr;
             m_coroHandle.resume();
-            return m_executionResult;
+			*nextTask = NextTask;
         }
 
         virtual void Cancel() override
@@ -58,8 +61,6 @@ namespace AO
 
         // TODO: make interface for task promise
         std::experimental::coroutine_handle<> m_coroHandle;
-        // TODO: set completed result on co_return //or final_suspend???
-        AO::TaskExecutionResult m_executionResult = WaitForOtherTask;
 	protected:
         void SetFuture(std::future<T> value)
         {
@@ -80,10 +81,16 @@ namespace AO
             m_step = &TDerived::Run;
         }
 
-        virtual AO::TaskExecutionResult Execute() override
+        virtual void Execute(Task** next) override
         {
             TDerived* ths = static_cast<TDerived*>(this);
-            return (ths->*m_step)();
+            auto result = (ths->*m_step)();
+
+			if (result == TaskExecutionResult::Completed)
+			{
+				this->Promise.GetContinuation(next);
+				this->Promise.SetReady();
+			}
         }
 
     protected:

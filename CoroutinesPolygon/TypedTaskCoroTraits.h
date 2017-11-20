@@ -7,6 +7,11 @@ struct std::experimental::coroutine_traits <std::unique_ptr<AO::TypedTask<int>>,
 {
     struct promise_type
     {
+		~promise_type()
+		{
+			
+		}
+
         std::promise<int> p;
 
         struct GetHandleAndSuspend
@@ -16,23 +21,57 @@ struct std::experimental::coroutine_traits <std::unique_ptr<AO::TypedTask<int>>,
             {
             }
 
-            bool await_ready() _NOEXCEPT
+            bool await_ready() noexcept
             {
                 return false;
             }
 
-            bool await_suspend(coroutine_handle<> handle) _NOEXCEPT
+            bool await_suspend(coroutine_handle<> handle) noexcept
             {
                 m_taskPromise.m_task->m_coroHandle = handle;
                 return true;
             }
 
-            void await_resume() _NOEXCEPT
+            void await_resume() noexcept
             {
             }
 
             promise_type& m_taskPromise;
         };
+
+		struct ReturnContinuation
+		{
+			ReturnContinuation(promise_type& taskPromise)
+				: m_taskPromise(taskPromise)
+			{
+			}
+
+			bool await_ready() const noexcept
+			{
+				return false;
+			}
+
+			bool await_suspend(std::experimental::coroutine_handle<>)
+			{
+				AO::Task* continuation;
+				if (m_taskPromise.m_task->Promise.GetContinuation(&continuation))
+				{
+					m_taskPromise.m_task->NextTask = continuation;
+				}
+
+				m_taskPromise.m_task->Promise.SetReady();
+
+				// now coroutine can be safely deleted
+				return false;
+			}
+
+			void await_resume() noexcept
+			{
+				
+			}
+
+			promise_type& m_taskPromise;
+		};
 
 
         auto initial_suspend()
@@ -40,14 +79,13 @@ struct std::experimental::coroutine_traits <std::unique_ptr<AO::TypedTask<int>>,
             return GetHandleAndSuspend(*this);
         }
 
-        auto final_suspend()
-        {
-            return suspend_never{};
-        }
+		auto final_suspend() noexcept
+		{
+			return ReturnContinuation{ *this };
+		}
 
         void return_value(int v)
         {
-            m_task->m_executionResult = AO::TaskExecutionResult::Completed;
             p.set_value(v);
         }
 

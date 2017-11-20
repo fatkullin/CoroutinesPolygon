@@ -28,7 +28,7 @@ namespace AO
     public:
         Task() {}
         virtual ~Task() = default;
-        virtual TaskExecutionResult Execute() = 0;
+        virtual void Execute(Task** nextTask) = 0;
         virtual void Cancel() = 0;
         virtual TaskBlockingType GetBlockingType()
         {

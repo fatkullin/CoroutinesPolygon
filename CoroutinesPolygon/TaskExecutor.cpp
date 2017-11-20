@@ -7,54 +7,11 @@ namespace AO
 {
     Task* TaskExecutor::Execute(Task*& task)
     {
-        auto const executionResult = task->Execute();
+		Task* nextTask = nullptr;
+        task->Execute(&nextTask);
 
-		if (executionResult == AsyncOperationRun)
-        {
-            task = nullptr;
-            return nullptr;
-        }
-
-        // TODO: the following "if" logic should be placed right into Execute() realization for task
-        else if (executionResult == WaitForOtherTask)
-        {
-            auto& future = task->WaitingFuture;
-            if (future->SetContinuation(task))
-            {
-                task = nullptr;
-                return nullptr;
-            }
-
-            return nullptr;
-        }
-        else if (executionResult == Completed)
-        {
-            auto& promise = task->Promise;
-            Task* continuation;
-            if (promise.GetContinuation(&continuation)) //similar to completedWithChildTask
-            {
-                task->Promise.SetReady();
-                task = nullptr;
-                return continuation;
-            }
-            else
-            {
-                task->Promise.SetReady();
-                task = nullptr;
-                return nullptr;
-            }
-        }
-		else if (executionResult == CompletedCoroutine)
-		{
-			task = nullptr;
-			return nullptr;
-		}
-        else // state = yielded
-        {
-            auto const result = task;
-            task = nullptr;
-            return result;
-        }
+		task = nullptr;
+		return nextTask;
     }
 
 }
