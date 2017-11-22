@@ -31,9 +31,8 @@ namespace AO
         return ReadFile(m_fileHandle, Data, BufferSize, nullptr, this);
     }
 
-    ReadFileOperation::ReadFileOperation(File&& file, HANDLE iocp)
+    ReadFileOperation::ReadFileOperation(File&& file)
         : m_file(std::move(file))
-        , m_iocp(iocp)
     {
     }
 
@@ -44,10 +43,6 @@ namespace AO
 
     AO::TaskExecutionResult ReadFileOperation::Run() noexcept
     {
-        auto const code = CreateIoCompletionPort(GetHandle(), m_iocp, 0, 0);
-        if (code == nullptr)
-            return CompletedWithError(std::move(HRESULT_FROM_WIN32(GetLastError())));
-
         m_asyncOperation = std::make_unique<ReadFileResult>(GetHandle(), nullptr);
 
         return WaitForAsyncOperation(m_asyncOperation.get(), &ReadFileOperation::OnCompleted);

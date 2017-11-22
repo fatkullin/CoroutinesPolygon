@@ -122,6 +122,8 @@ namespace AO
 
 		Task* NextTask = nullptr;							// childTask or continuation
 
+        HANDLE IoCompletionHandle = nullptr;
+
         TypedTask()
             : m_coroHandle(nullptr)
         {
@@ -164,8 +166,9 @@ namespace AO
 		void await_suspend(std::experimental::coroutine_handle<AO::TaskPromiseType<TOuter>> awaiter) noexcept
 		{
 			TaskPromiseType<TOuter>& taskPromise = awaiter.promise();
-			taskPromise.m_task->NextTask = this;
+            this->IoCompletionHandle = taskPromise.m_task->IoCompletionHandle;
 
+		    taskPromise.m_task->NextTask = this;
 			this->Promise.SetContinuation(taskPromise.m_task);
 		}
 

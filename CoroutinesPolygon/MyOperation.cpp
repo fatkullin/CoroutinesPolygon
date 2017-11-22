@@ -25,7 +25,7 @@ namespace AO
         
         auto file = File(std::move(cAtlFile));
 
-        auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file), taskManager->CompletionPort);
+        auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file));
 
         auto readFuture = taskManager->AddNewOperation(std::move(readFileOperation));
 
@@ -34,18 +34,17 @@ namespace AO
         co_return (int)data[0];
     }
 
-	std::unique_ptr<TypedTask<int>> GetMyTask(std::shared_ptr<AO::TaskManager> taskManager, std::wstring filePath)
+	std::unique_ptr<TypedTask<int>> GetMyTask(std::wstring filePath)
     {
         auto someWork = DoSyncWork();
 		co_await *someWork;
 
 		auto fileOperation = std::make_unique<OpenFileOperation>(filePath);
-		auto openFileFuture = taskManager->AddNewOperation(std::move(fileOperation));
-		auto file = co_await openFileFuture;
 
-		auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file), taskManager->CompletionPort);
-		auto readFuture = taskManager->AddNewOperation(std::move(readFileOperation));
-		auto data = co_await readFuture;
+		auto file = co_await *fileOperation;
+
+		auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file));
+		auto data = co_await *readFileOperation;
 
 		co_return (int)data[0];
     }
@@ -89,7 +88,8 @@ namespace AO
         {
             auto file = m_openFile.get();
 
-            auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file), m_taskManager->CompletionPort);
+            auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file));
+            readFileOperation->IoCompletionHandle = m_taskManager->CompletionPort;
 
             m_readFile = readFileOperation->GetFuture();
 

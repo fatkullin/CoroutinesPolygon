@@ -24,7 +24,7 @@ namespace AO
             HANDLE m_fileHandle;
         };
 
-        ReadFileOperation(File&& file, HANDLE iocp);
+        ReadFileOperation(File&& file);
 
         HANDLE GetHandle() const;
 
@@ -37,6 +37,5 @@ namespace AO
     private:
         File m_file;
         std::unique_ptr<ReadFileResult> m_asyncOperation;
-        HANDLE m_iocp;
     };
 }

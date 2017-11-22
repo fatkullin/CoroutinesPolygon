@@ -43,6 +43,8 @@ namespace AO
         template<class T>
         auto AddNewOperation(std::unique_ptr<T> operation) -> ResultFuture<typename T::Result_t>
         {
+            operation->IoCompletionHandle = CompletionPort;
+
             auto result = operation->GetFuture();
             return ResultFuture<typename T::Result_t>(AddNewTask(std::move(operation)), std::move(result));
         }

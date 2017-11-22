@@ -24,6 +24,13 @@ namespace AO
         }
         else
         {
+            _ASSERTE(IoCompletionHandle != NULL);
+            auto const code = CreateIoCompletionPort(HANDLE(file), IoCompletionHandle, 0, 0);
+
+            if (code == nullptr)
+                return CompletedWithError(std::move(HRESULT_FROM_WIN32(GetLastError())));
+
+
             return CompletedWithSuccess(File(std::move(file)));
         }
     }
