@@ -23,6 +23,99 @@ namespace AO
     };
 
 	template <class T>
+	struct TypedTask;
+
+	template <class T>
+	struct TaskPromiseTypeBase
+	{
+		std::promise<T> p;
+
+		struct GetHandleAndSuspend
+		{
+			GetHandleAndSuspend(TaskPromiseTypeBase& taskPromise)
+				: m_taskPromise(taskPromise)
+			{
+			}
+
+			bool await_ready() noexcept
+			{
+				return false;
+			}
+
+			bool await_suspend(std::experimental::coroutine_handle<> handle) noexcept;
+
+			void await_resume() noexcept
+			{
+			}
+
+			TaskPromiseTypeBase& m_taskPromise;
+		};
+
+		struct ReturnContinuation
+		{
+			ReturnContinuation(TaskPromiseTypeBase& taskPromise)
+				: m_taskPromise(taskPromise)
+			{
+			}
+
+			bool await_ready() const noexcept
+			{
+				return false;
+			}
+
+			bool await_suspend(std::experimental::coroutine_handle<>);
+
+			void await_resume() noexcept
+			{
+
+			}
+
+			TaskPromiseTypeBase& m_taskPromise;
+		};
+
+
+		auto initial_suspend()
+		{
+			return GetHandleAndSuspend(*this);
+		}
+
+		auto final_suspend() noexcept
+		{
+			return ReturnContinuation{ *this };
+		}
+
+		std::unique_ptr<AO::TypedTask<T>> get_return_object();
+
+		void unhandled_exception()
+		{
+			p.set_exception(std::current_exception());
+		}
+
+		// TODO: check for lifetime
+		AO::TypedTask<T>* m_task;
+	};
+
+	template<typename T>
+	class TaskPromiseType : public TaskPromiseTypeBase<T>
+	{
+	public:
+		void return_value(T v)
+		{
+			p.set_value(std::move(v));
+		}
+	};
+
+	template<>
+	class TaskPromiseType<void> : public TaskPromiseTypeBase<void>
+	{
+	public:
+		void return_void() noexcept
+		{
+			p.set_value();
+		}
+	};
+
+	template <class T>
 	struct TypedTask : public Task
 	{
         using Result_t = T;
@@ -61,6 +154,26 @@ namespace AO
 
         // TODO: make interface for task promise
         std::experimental::coroutine_handle<> m_coroHandle;
+
+		constexpr bool await_ready() const noexcept
+		{
+			return false;
+		}
+
+		template<class TOuter>
+		void await_suspend(std::experimental::coroutine_handle<AO::TaskPromiseType<TOuter>> awaiter) noexcept
+		{
+			TaskPromiseType<TOuter>& taskPromise = awaiter.promise();
+			taskPromise.m_task->NextTask = this;
+
+			this->Promise.SetContinuation(taskPromise.m_task);
+		}
+
+		T await_resume()
+		{
+			return m_future.get();
+		}
+
 	protected:
         void SetFuture(std::future<T> value)
         {
@@ -134,4 +247,34 @@ namespace AO
         std::promise<T> m_promise;
         TaskState m_state;
     };
+
+	template <class T>
+	bool TaskPromiseTypeBase<T>::GetHandleAndSuspend::await_suspend(std::experimental::coroutine_handle<> handle) noexcept
+	{
+		m_taskPromise.m_task->m_coroHandle = handle;
+		return true;
+	}
+	
+	template <class T>
+	bool TaskPromiseTypeBase<T>::ReturnContinuation::await_suspend(std::experimental::coroutine_handle<>)
+	{
+		AO::Task* continuation;
+		if (m_taskPromise.m_task->Promise.GetContinuation(&continuation))
+		{
+			m_taskPromise.m_task->NextTask = continuation;
+		}
+	
+		m_taskPromise.m_task->Promise.SetReady();
+	
+		// now coroutine can be safely deleted
+		return false;
+	}
+	
+	template <class T>
+	std::unique_ptr<AO::TypedTask<T>> TaskPromiseTypeBase<T>::get_return_object()
+	{
+		auto result = std::make_unique<AO::TypedTask<T>>(p.get_future());
+		m_task = result.get();
+		return result;
+	}
 }

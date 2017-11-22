@@ -25,6 +25,26 @@ namespace AO
         void Set();
         void Get();
 
+		bool SetContinuation(Task* task)
+		{
+			// TODO: contract requires
+			// TODO: to relax memory order
+			Task* expectedNull = nullptr;
+			return Continuation.compare_exchange_strong(expectedNull, task);
+		}
+
+		bool GetContinuation(Task** task)
+		{
+			Task* noTask = nullptr;
+			Task* invalidTask = (Task*)(-1);
+			if (Continuation.compare_exchange_strong(noTask, invalidTask))
+				return false;
+
+			*task = Continuation;
+			return true;
+		}
+
+
     private:
         std::mutex m_mutex;
         std::condition_variable m_cv;
@@ -71,6 +91,9 @@ namespace AO
         // Return 'true' if continuation are extracted. 
         // (In this case 'SetContinuation' for corresponding future also returns 'true')
         bool GetContinuation(Task** task) const;
+
+		// The same as for Future but called only for child task in task context
+		bool SetContinuation(Task* task) const;
 
         //can be called only once
         std::unique_ptr<Future> GetFuture() const;

@@ -47,6 +47,7 @@ namespace AO
 		{
 			return Result.get();
 		}
+		
 		constexpr bool await_ready() const noexcept
 		{
 			return false;

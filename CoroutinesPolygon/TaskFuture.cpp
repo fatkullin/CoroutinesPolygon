@@ -29,19 +29,7 @@ namespace AO
 
     bool Future::SetContinuation(Task* task) const
     {
-        // TODO: contract requires
-        // TODO: to relax memory order
-		Task* expectedNull = nullptr;
-		return m_sharedState->Continuation.compare_exchange_strong(expectedNull, task);
-        //m_sharedState->Continuation.Push(task); //strong ordering
-        //task = nullptr;
-        //if (m_sharedState->State == FutureState::Ready)
-        //{
-        //    task = m_sharedState->Continuation.TryPop();
-        //    if (task != nullptr)
-        //        return false;
-        //}
-        //return true;
+		return m_sharedState->SetContinuation(task);
     }
 
     void Future::SetTask(std::unique_ptr<Task> task) noexcept
@@ -60,13 +48,12 @@ namespace AO
 
     bool Promise::GetContinuation(Task** task) const
     {
-		Task* noTask = nullptr;
-		Task* invalidTask = (Task*)(-1);
-		if (m_sharedState->Continuation.compare_exchange_strong(noTask, invalidTask))
-			return false;
+		return m_sharedState->GetContinuation(task);
+    }
 
-		*task = m_sharedState->Continuation;
-		return true;
+	bool Promise::SetContinuation(Task* task) const
+    {
+		return m_sharedState->SetContinuation(task);
     }
 
     std::unique_ptr<Future> Promise::GetFuture() const

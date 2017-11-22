@@ -6,13 +6,15 @@
 
 namespace AO
 {
-    static void DoSyncWork()
+    static std::unique_ptr<TypedTask<void>> DoSyncWork()
     {
         double a = 1;
         for (int i = 0; i < 10000; ++i)
         {
             a *= sqrt(i);
         }
+
+		co_return;
     }
 
     std::future<int> MyTaskAsync(std::shared_ptr<AO::TaskManager> taskManager, std::wstring filePath)
@@ -34,17 +36,15 @@ namespace AO
 
 	std::unique_ptr<TypedTask<int>> GetMyTask(std::shared_ptr<AO::TaskManager> taskManager, std::wstring filePath)
     {
-        //DoSyncWork();
-		CAtlFile cAtlFile;
-		HRESULT hr = cAtlFile.Create(filePath.c_str(),
-			GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_OVERLAPPED);
+        auto someWork = DoSyncWork();
+		co_await *someWork;
 
-		auto file = File(std::move(cAtlFile));
+		auto fileOperation = std::make_unique<OpenFileOperation>(filePath);
+		auto openFileFuture = taskManager->AddNewOperation(std::move(fileOperation));
+		auto file = co_await openFileFuture;
 
 		auto readFileOperation = std::make_unique<ReadFileOperation>(std::move(file), taskManager->CompletionPort);
-
 		auto readFuture = taskManager->AddNewOperation(std::move(readFileOperation));
-
 		auto data = co_await readFuture;
 
 		co_return (int)data[0];

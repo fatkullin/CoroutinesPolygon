@@ -23,7 +23,7 @@ int main()
 	auto const taskManager = AO::TaskManager::Create(1);
 	int r = 0;
 
-	for (int j = 0; j < 1000; ++j)
+	for (int j = 0; j < 100; ++j)
 	{
 		std::vector<FutureType> vf;
 		for (int i = 0; i < 100; ++i)
