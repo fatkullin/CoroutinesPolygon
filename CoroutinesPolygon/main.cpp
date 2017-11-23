@@ -14,7 +14,7 @@ FutureType GetFuture(std::shared_ptr<AO::TaskManager> taskManager)
     //auto task = std::make_unique<AO::MyTask>(taskManager, L"d:\\tmp.dat");
     //return taskManager->AddNewOperation(std::move(task));
 
-    auto task = AO::GetMyTask(taskManager, L"d:\\tmp.dat");
+    auto task = AO::GetMyTask(L"d:\\tmp.dat");
     return taskManager->AddNewOperation(std::move(task));
 }
 
