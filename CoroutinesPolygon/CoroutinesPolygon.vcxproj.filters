@@ -36,9 +36,6 @@
     <ClInclude Include="LockFreePtrQueue.h">
       <Filter>TaskManager</Filter>
     </ClInclude>
-    <ClInclude Include="TaskFuture.h">
-      <Filter>TaskManager</Filter>
-    </ClInclude>
     <ClInclude Include="Task.h">
       <Filter>TaskManager</Filter>
     </ClInclude>
@@ -90,9 +87,6 @@
       <Filter>TaskManager</Filter>
     </ClCompile>
     <ClCompile Include="LockFreePtrQueue.cpp">
-      <Filter>TaskManager</Filter>
-    </ClCompile>
-    <ClCompile Include="TaskFuture.cpp">
       <Filter>TaskManager</Filter>
     </ClCompile>
     <ClCompile Include="Task.cpp">

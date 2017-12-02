@@ -32,7 +32,7 @@ namespace AO
 
         TaskExecutionResult OnCompleted();
 
-        virtual void Cancel() override;
+ //       virtual void Cancel() override;
 
     private:
         File m_file;

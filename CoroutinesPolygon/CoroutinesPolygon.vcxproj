@@ -163,7 +163,6 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Task.h" />
     <ClInclude Include="TaskExecutor.h" />
-    <ClInclude Include="TaskFuture.h" />
     <ClInclude Include="TaskManager.h" />
     <ClInclude Include="TypedTaskCoroTraits.h" />
     <ClInclude Include="Worker.h" />
@@ -187,7 +186,6 @@
     </ClCompile>
     <ClCompile Include="Task.cpp" />
     <ClCompile Include="TaskExecutor.cpp" />
-    <ClCompile Include="TaskFuture.cpp" />
     <ClCompile Include="TaskManager.cpp" />
     <ClCompile Include="Worker.cpp" />
   </ItemGroup>

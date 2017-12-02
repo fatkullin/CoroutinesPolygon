@@ -27,3 +27,17 @@
 //	m_task = result.get();
 //	return result;
 //}
+void AO::TaskPromiseType<void>::return_void() noexcept
+{
+    auto readyNotifier = std::move(m_task->m_readyNotifier);
+    Task* continuation;
+    if (m_task->GetContinuation(&continuation))
+    {
+        m_task->NextTask = continuation;
+    }
+
+    if (readyNotifier)
+    {
+        readyNotifier->set_value();
+    }
+}

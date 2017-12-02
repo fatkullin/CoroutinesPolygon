@@ -5,7 +5,7 @@
 #include <iostream>
 
 //using FutureType = std::future<int>;
-using FutureType = AO::ResultFuture<int>;
+using FutureType = std::unique_ptr<AO::ResultFuture<int>>;
 
 FutureType GetFuture(std::shared_ptr<AO::TaskManager> taskManager)
 {
@@ -33,7 +33,7 @@ int main()
 
 		for (int i = 0; i < 100; ++i)
 		{
-			auto const res = vf[i].get();
+			auto const res = vf[i]->get();
 			r += res;
 		}
 	}

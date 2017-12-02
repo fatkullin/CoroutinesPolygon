@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "TaskFuture.h"
 
 namespace AO
 {
@@ -23,13 +22,10 @@ namespace AO
     class Task
     {
     public:
-        Promise Promise;
-        std::unique_ptr<Future> WaitingFuture = nullptr;    // future for task where current task is continuation
-    public:
         Task() {}
         virtual ~Task() = default;
         virtual void Execute(Task** nextTask) = 0;
-        virtual void Cancel() = 0;
+        //virtual void Cancel() = 0;
         virtual TaskBlockingType GetBlockingType()
         {
             return TaskBlockingType::NonBlocked;

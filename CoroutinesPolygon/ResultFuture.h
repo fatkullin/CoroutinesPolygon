@@ -1,7 +1,8 @@
 ﻿#pragma once
 
-#include "TaskFuture.h"
+//#include "TaskFuture.h"
 #include <experimental/coroutine>
+#include "TypedTaskCoroTraits.h"
 
 namespace AO
 {
@@ -20,10 +21,10 @@ namespace AO
 			m_awaiter.resume();
 		}
 
-		void Cancel() override
-		{
+		//void Cancel() override
+		//{
 
-		}
+		//}
 
 	private:
 		std::experimental::coroutine_handle<> m_awaiter;
@@ -37,17 +38,24 @@ namespace AO
 	class ResultFuture
 	{
 	public:
-		ResultFuture(std::unique_ptr<Future> taskFuture, std::future<T> result)
-			: TaskFuture(std::move(taskFuture))
-			, Result(std::move(result))
+		ResultFuture(std::future<void> result, std::unique_ptr<TypedTask<T>> task)
+			: Result(std::move(result))
+            , m_task(std::move(task))
 		{
+
 		}
 
 		T get()
 		{
-			return Result.get();
+			Result.wait();
+            return std::move(m_task->Result.Get());
 		}
 		
+        ~ResultFuture()
+		{
+            Result.wait();
+		}
+
 		constexpr bool await_ready() const noexcept
 		{
 			return false;
@@ -59,20 +67,21 @@ namespace AO
 			m_awaiter = awaiter;
 
 			m_awaiterTask = std::make_unique<AwaiterTask>(m_awaiter);
-			return TaskFuture->SetContinuation(m_awaiterTask.get());
+            return  m_task->SetContinuation(m_awaiterTask.get());
 		}
 
-		constexpr T await_resume() noexcept
+		T await_resume() noexcept
 		{
-			return Result.get();
+            return std::move(m_task->Result.Get());
 		}
 
-		std::unique_ptr<Future> TaskFuture;
-		std::future<T> Result;
+		//std::unique_ptr<Future> TaskFuture;
+		std::future<void> Result;
 
 		std::unique_ptr<AwaiterTask> m_awaiterTask;
 
 	private:
 		std::experimental::coroutine_handle<> m_awaiter;
+        std::unique_ptr<TypedTask<T>> m_task;
 	};
 }

@@ -55,9 +55,9 @@ namespace AO
                                          (unsigned char*)m_asyncOperation->Data + m_asyncOperation->BufferSize));
     }
 
-    void ReadFileOperation::Cancel()
-    {
-        HRESULT res = CancelIoEx(GetHandle(), m_asyncOperation.get());
-        // TODO: handle error
-    }
+    //void ReadFileOperation::Cancel()
+    //{
+    //    HRESULT res = CancelIoEx(GetHandle(), m_asyncOperation.get());
+    //    // TODO: handle error
+    //}
 }

@@ -2,7 +2,6 @@
 
 #include "Worker.h"
 #include "LockFreePtrQueue.h"
-#include "TaskFuture.h"
 #include "Task.h"
 #include "ResultFuture.h"
 
@@ -38,15 +37,19 @@ namespace AO
 	public:
 	    ~TaskManager();
 
-	    std::unique_ptr<Future> AddNewTask(TaskPtr_t task);
-
         template<class T>
-        auto AddNewOperation(std::unique_ptr<T> operation) -> ResultFuture<typename T::Result_t>
+        auto AddNewOperation(std::unique_ptr<T> operation) -> std::unique_ptr<ResultFuture<typename T::Result_t>>
         {
+            // set context
             operation->IoCompletionHandle = CompletionPort;
 
-            auto result = operation->GetFuture();
-            return ResultFuture<typename T::Result_t>(AddNewTask(std::move(operation)), std::move(result));
+            auto promise = std::make_unique<std::promise<void>>();
+            auto future = promise->get_future();
+            operation->SetPromise(std::move(promise));
+            Task* taskPtr = operation.get();
+            auto result = std::make_unique<ResultFuture<typename T::Result_t>>(std::move(future), std::move(operation) /*, shared_from_this()*/);
+            AddExistingTaskToQueue(taskPtr);
+            return result;
         }
 
         Task* GetNextTask(Task* task, Task* newTask, Worker& worker);
@@ -58,7 +61,7 @@ namespace AO
 
 	    Task* GetTaskOrPushWorker(Worker* worker);
 
-	    void AddExistingTaskToQueue(Task* task);
+	    void AddExistingTaskToQueue(Task* task) noexcept;
 
     private:
         LockFreePtrQueue<Task> m_taskQueue;

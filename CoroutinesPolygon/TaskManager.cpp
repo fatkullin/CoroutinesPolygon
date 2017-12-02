@@ -64,20 +64,6 @@ namespace AO
             sleepTask->Cancel();
     }
 
-    std::unique_ptr<Future> TaskManager::AddNewTask(TaskPtr_t task)
-    {
-        auto result = task->Promise.GetFuture();
-
-        auto const taskPtr = task.get();
-        result->SetTask(std::move(task));
-        result->SetManager(shared_from_this());
-
-        AddExistingTaskToQueue(taskPtr);
-
-        return result;
-    }
-
-
     // the 'task' born 'newTask' so find strategy to run each 
     // oldTask - is old task that is ready to be continued on worker
     // newTask - is the task that born by task
@@ -132,7 +118,7 @@ namespace AO
 
             task = GetTaskOrPushWorker(&worker);
 
-            // if task == nullptr - worker return to GetInitialTask
+            // if task == nullptr - worker returns to GetInitialTask
             return task;
         }
     }
@@ -162,11 +148,8 @@ namespace AO
     Task* TaskManager::GetTaskOrPushWorker(Worker* worker)
     {
         WorkerType type = worker->m_type;
-        if (type == WorkerType::AsyncThreadPool)
-        {
-            // invalid worker
-            _ASSERTE(type == WorkerType::AsyncThreadPool);
-        }
+        
+        _ASSERTE(type != WorkerType::AsyncThreadPool);
 
         auto& workerStack = type == WorkerType::SynchroThreadPool ? m_syncFreeWorkers : m_freeWorkers;
         auto& taskQueue = type == WorkerType::SynchroThreadPool ? m_syncTaskQueue : m_taskQueue;
@@ -187,7 +170,10 @@ namespace AO
         }
     }
 
-    void TaskManager::AddExistingTaskToQueue(Task* task)
+    // assume function is noexcept
+    // otherwise task will never end
+    // TODO: to finish task if exception
+    void TaskManager::AddExistingTaskToQueue(Task* task) noexcept
     {
         auto worker = GetWorkerOrAddTask(task);
         if (worker)

@@ -17,10 +17,10 @@ namespace AO
 
         AO::TaskExecutionResult Run() noexcept;
 
-        void Cancel() override
-        {
-            // TODO: call cancel IO operation with thread that execute current operation
-        }
+        //void Cancel() override
+        //{
+        //    // TODO: call cancel IO operation with thread that execute current operation
+        //}
 
     private:
         std::wstring m_path;

@@ -28,8 +28,6 @@ namespace AO
 	template <class T>
 	struct TaskPromiseTypeBase
 	{
-		std::promise<T> p;
-
 		struct GetHandleAndSuspend
 		{
 			GetHandleAndSuspend(TaskPromiseTypeBase& taskPromise)
@@ -73,7 +71,6 @@ namespace AO
 			TaskPromiseTypeBase& m_taskPromise;
 		};
 
-
 		auto initial_suspend()
 		{
 			return GetHandleAndSuspend(*this);
@@ -88,7 +85,19 @@ namespace AO
 
 		void unhandled_exception()
 		{
-			p.set_exception(std::current_exception());
+            auto readyNotifier = std::move(m_task->m_readyNotifier);
+            m_task->Result.Exception = std::current_exception();
+
+            Task* continuation;
+            if (m_task->GetContinuation(&continuation))
+            {
+                m_task->NextTask = continuation;
+            }
+
+            if (readyNotifier)
+            {
+                readyNotifier->set_value();
+            }
 		}
 
 		// TODO: check for lifetime
@@ -99,41 +108,100 @@ namespace AO
 	class TaskPromiseType : public TaskPromiseTypeBase<T>
 	{
 	public:
-		void return_value(T v)
-		{
-			p.set_value(std::move(v));
-		}
+	    void return_value(T v);
 	};
 
 	template<>
 	class TaskPromiseType<void> : public TaskPromiseTypeBase<void>
 	{
 	public:
-		void return_void() noexcept
-		{
-			p.set_value();
-		}
+	    void return_void() noexcept;
 	};
+
+    template<class T>
+    struct TaskResultOrException
+    {
+        T Result;
+        std::exception_ptr Exception;
+
+        T Get()
+        {
+            if (Exception)
+                std::rethrow_exception(Exception);
+
+            return std::move(Result);
+        }
+    };
+
+    template<>
+    struct TaskResultOrException<void>
+    {
+        std::exception_ptr Exception;
+
+        void Get()
+        {
+            if (Exception)
+                std::rethrow_exception(Exception);
+        }
+    };
 
 	template <class T>
 	struct TypedTask : public Task
 	{
-        using Result_t = T;
+	private:
+        std::atomic<Task*> Continuation = nullptr;
+
+	public:
+        bool SetContinuation(Task* task) noexcept
+        {
+            Task* expectedNull = nullptr;
+            return Continuation.compare_exchange_strong(expectedNull, task);
+        }
+
+        bool GetContinuation(Task** task) noexcept
+        {
+            Task* noTask = nullptr;
+            Task* invalidTask = (Task*)(-1);
+            if (Continuation.compare_exchange_strong(noTask, invalidTask))
+                return false;
+
+            *task = Continuation;
+            return true;
+        }
+
+        //Task* SetResultAndGetContinuation(T result)
+        //{
+        //    Task* cont;
+        //    Result.Result = std::move(result);
+        //    GetContinuation(&cont);
+        //    return cont;
+        //}
+
+        //Task* SetExceptionAndGetContinuation(std::exception_ptr exception)
+        //{
+        //    Task* cont;
+        //    Result.Exception = std::move(exception);
+        //    GetContinuation(&cont);
+        //    return cont;
+        //}
+        
+	    using Result_t = T;
+        TaskResultOrException<Result_t> Result;
 
 		Task* NextTask = nullptr;							// childTask or continuation
 
+        // TODO: create special class - ExecutionEnvironment
         HANDLE IoCompletionHandle = nullptr;
 
         TypedTask()
             : m_coroHandle(nullptr)
         {
-            
         }
 
-	    TypedTask(std::future<T> value)
-            : m_future(std::move(value))
+        // used only in AddNewOperation for taskmanager
+        void SetPromise(std::unique_ptr<std::promise<void>> readyNotifier)
         {
-            
+            m_readyNotifier = std::move(readyNotifier);
         }
 
 		std::future<T> GetFuture()
@@ -148,11 +216,11 @@ namespace AO
 			*nextTask = NextTask;
         }
 
-        virtual void Cancel() override
-        {
-            // TODO: set cancelled exception
-            throw std::runtime_error("Cancelled");
-        }
+        //virtual void Cancel() override
+        //{
+        //    // TODO: set cancelled exception
+        //    throw std::runtime_error("Cancelled");
+        //}
 
         // TODO: make interface for task promise
         std::experimental::coroutine_handle<> m_coroHandle;
@@ -162,6 +230,11 @@ namespace AO
 			return false;
 		}
 
+        // Some outer task await for 'this' task.
+        // We should setup execution context for 'this' task (IoCompletionHandle),
+	    // then return 'this' task as 'NextTask' for outer task - so working thread be able to run this task.
+        // The outer task should be continued after 'this' task becomes ready.
+        // 
 		template<class TOuter>
 		void await_suspend(std::experimental::coroutine_handle<AO::TaskPromiseType<TOuter>> awaiter) noexcept
 		{
@@ -169,22 +242,16 @@ namespace AO
             this->IoCompletionHandle = taskPromise.m_task->IoCompletionHandle;
 
 		    taskPromise.m_task->NextTask = this;
-			this->Promise.SetContinuation(taskPromise.m_task);
+			this->SetContinuation(taskPromise.m_task);
 		}
 
 		T await_resume()
 		{
-			return m_future.get();
+            return Result.Get();
 		}
 
-	protected:
-        void SetFuture(std::future<T> value)
-        {
-            m_future = std::move(value);
-        }
-
-	private:
-        std::future<T> m_future;
+	public:
+        std::unique_ptr<std::promise<void>> m_readyNotifier;
 	};
 
     template <class TDerived, class T>
@@ -193,7 +260,6 @@ namespace AO
         OperationBase() 
             : m_state(TaskState::Creating)
         {
-            SetFuture(m_promise.get_future());
             m_step = &TDerived::Run;
         }
 
@@ -204,30 +270,40 @@ namespace AO
 
 			if (result == TaskExecutionResult::Completed)
 			{
-				this->Promise.GetContinuation(next);
-				this->Promise.SetReady();
+                auto futureMain = m_promiseMain.get_future();
+                auto readyNotifier = std::move(this->m_readyNotifier);
+
+                try
+                {
+                    this->Result.Result = std::move(futureMain.get());
+                    this->GetContinuation(next);
+                }
+                catch (...)
+                {
+                    this->Result.Exception = std::move(std::current_exception());
+                    this->GetContinuation(next);
+                }
+
+                if (readyNotifier)
+                {
+                    readyNotifier->set_value();
+                }
 			}
         }
 
     protected:
-        AO::TaskExecutionResult Wait(std::unique_ptr<AO::Future> future, AO::TaskExecutionResult(TDerived::*nextStep)())
-        {
-            WaitingFuture = std::move(future);
-            m_step = nextStep;
-            return AO::TaskExecutionResult::WaitForOtherTask;
-        }
 
         AO::TaskExecutionResult CompletedWithError(Error_t&& result) noexcept
         {
             m_state = TaskState::Completed;
-            m_promise.set_exception(std::make_exception_ptr(ErrorException(std::move(result))));
+            m_promiseMain.set_exception(std::make_exception_ptr(ErrorException(std::move(result))));
             return AO::TaskExecutionResult::Completed;
         }
 
         AO::TaskExecutionResult CompletedWithSuccess(T&& result)
         {
             m_state = TaskState::Completed;
-            m_promise.set_value(std::move(result));
+            m_promiseMain.set_value(std::move(result));
             return AO::TaskExecutionResult::Completed;
         }
 
@@ -247,7 +323,7 @@ namespace AO
 
     private:
         AO::TaskExecutionResult(TDerived::*m_step)();
-        std::promise<T> m_promise;
+        std::promise<T> m_promiseMain;
         TaskState m_state;
     };
 
@@ -261,13 +337,6 @@ namespace AO
 	template <class T>
 	bool TaskPromiseTypeBase<T>::ReturnContinuation::await_suspend(std::experimental::coroutine_handle<>)
 	{
-		AO::Task* continuation;
-		if (m_taskPromise.m_task->Promise.GetContinuation(&continuation))
-		{
-			m_taskPromise.m_task->NextTask = continuation;
-		}
-	
-		m_taskPromise.m_task->Promise.SetReady();
 	
 		// now coroutine can be safely deleted
 		return false;
@@ -276,8 +345,26 @@ namespace AO
 	template <class T>
 	std::unique_ptr<AO::TypedTask<T>> TaskPromiseTypeBase<T>::get_return_object()
 	{
-		auto result = std::make_unique<AO::TypedTask<T>>(p.get_future());
+		auto result = std::make_unique<AO::TypedTask<T>>();
 		m_task = result.get();
 		return result;
 	}
+
+    template <typename T>
+    void TaskPromiseType<T>::return_value(T v)
+    {
+        auto readyNotifier = std::move(m_task->m_readyNotifier);
+
+        m_task->Result.Result = std::move(v);
+        Task* continuation;
+        if (m_task->GetContinuation(&continuation))
+        {
+            m_task->NextTask = continuation;
+        }
+
+        if (readyNotifier)
+        {
+            readyNotifier->set_value();
+        }
+    }
 }
