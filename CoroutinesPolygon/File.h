@@ -3,7 +3,7 @@
 struct File
 {
     File(CAtlFile&& file) noexcept
-        : m_file(file)
+        : Handle(file)
     {
     }
 
@@ -12,7 +12,7 @@ struct File
     File(File & other) = delete;
 
     File(File&& other) noexcept
-        : m_file(other.m_file)
+        : Handle(other.Handle)
     {
     }
 
@@ -22,10 +22,10 @@ struct File
     {
         if (this == &other)
             return *this;
-        m_file.Attach(other.m_file.Detach());
+        Handle.Attach(other.Handle.Detach());
         return *this;
     }
 
-    CAtlFile m_file;
+    CAtlFile Handle;
 };
 

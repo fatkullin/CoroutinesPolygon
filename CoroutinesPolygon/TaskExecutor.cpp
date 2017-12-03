@@ -5,9 +5,9 @@
 
 namespace AO
 {
-    Task* TaskExecutor::Execute(Task*& task)
+    ITask* TaskExecutor::Execute(ITask*& task)
     {
-		Task* nextTask = nullptr;
+		ITask* nextTask = nullptr;
         task->Execute(&nextTask);
 
 		task = nullptr;

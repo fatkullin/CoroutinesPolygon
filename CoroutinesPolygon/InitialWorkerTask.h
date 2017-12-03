@@ -2,13 +2,13 @@
 
 namespace AO
 {
-    class Task;
+    class ITask;
 
     struct InitialTask
     {
         virtual ~InitialTask() = default;
-        virtual Task* WaitForTask() = 0;
-        virtual void SetTask(Task*) = 0;
+        virtual ITask* WaitForTask() = 0;
+        virtual void SetTask(ITask*) = 0;
         virtual void Cancel() = 0;
     };
 }

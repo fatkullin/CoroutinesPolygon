@@ -1,6 +1,5 @@
 ﻿#pragma once
-#include "Task.h"
-#include "AsyncOperation.h"
+#include "ITask.h"
 #include <experimental/coroutine>
 
 namespace AO
@@ -20,26 +19,26 @@ namespace AO
     struct TaskResultOrException
     {
         TaskResultOrException(T result)
-            : Result(std::move(result))
+            : m_result(std::move(result))
         {
         }
 
         TaskResultOrException(std::exception_ptr exception)
-            : Exception(exception)
+            : m_exception(exception)
         {
         }
 
         T Get()
         {
-            if (Exception)
-                rethrow_exception(Exception);
+            if (m_exception)
+                rethrow_exception(m_exception);
 
-            return std::move(Result);
+            return std::move(m_result);
         }
 
     private:
-        T Result;
-        std::exception_ptr Exception;
+        T m_result;
+        std::exception_ptr m_exception;
     };
 
     template<>
@@ -48,19 +47,18 @@ namespace AO
         TaskResultOrException() = default;
 
         TaskResultOrException(std::exception_ptr exception)
-            : Exception(exception)
+            : m_exception(exception)
         {
         }
 
         void Get()
         {
-            if (Exception)
-                rethrow_exception(Exception);
+            if (m_exception)
+                rethrow_exception(m_exception);
         }
 
     private:
-        std::exception_ptr Exception;
-
+        std::exception_ptr m_exception;
     };
 
 
@@ -118,7 +116,12 @@ namespace AO
             }
 		}
 
-		// TODO: check for lifetime
+        CoroTask<T>* GetTask() const
+		{
+            return m_task;
+		}
+
+	private:
 		CoroTask<T>* m_task;
 	};
 
@@ -137,7 +140,7 @@ namespace AO
 	};
 
 	template <class T>
-	struct TypedTask : public Task
+	struct TypedTask : public ITask
 	{
         using Result_t = T;
         using IoCompletionHandle_t = HANDLE;
@@ -157,9 +160,9 @@ namespace AO
 	    // after finishing of the current task. Continuation task should not be destroyed
 	    // until the execution ending.
         // 
-        bool SetContinuation(Task* task) noexcept
+        bool SetContinuation(ITask* task) noexcept
         {
-            Task* expectedNull = nullptr;
+            ITask* expectedNull = nullptr;
             return m_continuation.compare_exchange_strong(expectedNull, task);
         }
 
@@ -182,11 +185,11 @@ namespace AO
 		void await_suspend(std::experimental::coroutine_handle<TaskPromiseType<TOuter>> awaiter) noexcept
 		{
 			TaskPromiseType<TOuter>& taskPromise = awaiter.promise();
-            this->IoCompletionHandle = taskPromise.m_task->IoCompletionHandle;
+            this->IoCompletionHandle = taskPromise.GetTask()->GetExecutionContext();
 
-            taskPromise.m_task->SetNextTask(this);
+            taskPromise.GetTask()->SetNextTask(this);
 		    //taskPromise.m_task->NextTask = this;
-			this->SetContinuation(taskPromise.m_task);
+			this->SetContinuation(taskPromise.GetTask());
 		}
 
 		T await_resume()
@@ -194,18 +197,19 @@ namespace AO
             return TaskResult->Get();
 		}
 
-	protected:
         ExecutionContext_t GetExecutionContext() const
         {
             return IoCompletionHandle;
         }
 
+    protected:
+
         // ReSharper disable once CppHiddenFunction
-        Task* SetResultAndGetContinuation(TaskResultOrException<Result_t> result)
+        ITask* SetResultAndGetContinuation(TaskResultOrException<Result_t> result)
         {
             auto readyNotifier = move(m_readyNotifier);
 
-            Task* cont = nullptr;
+            ITask* cont = nullptr;
             TaskResult = std::make_unique<TaskResultOrException<Result_t>>(std::move(result));
 
             // destructor for task might be run just after GetContinuation completion
@@ -223,10 +227,10 @@ namespace AO
         std::unique_ptr<std::promise<void>> m_readyNotifier;
 
 	private:
-        bool GetContinuation(Task** task) noexcept
+        bool GetContinuation(ITask** task) noexcept
         {
-            Task* noTask = nullptr;
-            Task* invalidTask = (Task*)(-1);
+            ITask* noTask = nullptr;
+            ITask* invalidTask = (ITask*)(-1);
             if (m_continuation.compare_exchange_strong(noTask, invalidTask))
                 return false;
 
@@ -235,17 +239,15 @@ namespace AO
         }
 
     private:
-        std::atomic<Task*> m_continuation = nullptr;
+        std::atomic<ITask*> m_continuation = nullptr;
         IoCompletionHandle_t IoCompletionHandle = nullptr;
         std::unique_ptr<TaskResultOrException<Result_t>> TaskResult;
-
-        template<class V> friend struct TypedTask;
 	};
 
     template <class T>
     struct CoroTask : public TypedTask<T>
     {
-        virtual void Execute(Task** nextTask) override
+        virtual void Execute(ITask** nextTask) final override
         {
             NextTask = nullptr;
             m_coroHandle.resume();
@@ -254,45 +256,61 @@ namespace AO
 
         // public morozov
         // ReSharper disable once CppHidingFunction
-        Task* SetResultAndGetContinuation(TaskResultOrException<T> result)
+        ITask* SetResultAndGetContinuation(TaskResultOrException<T> result)
         {
             return TypedTask<T>::SetResultAndGetContinuation(std::move(result));
         }
 
         std::experimental::coroutine_handle<> m_coroHandle;
 
-        void SetNextTask(Task* next)
+        void SetNextTask(ITask* next)
         {
             NextTask = next;
         }
 
     private:
-        Task* NextTask = nullptr;							// childTask or continuation
+        ITask* NextTask = nullptr;							// childTask or continuation
     };
 
-    template <class TDerived, class T>
-    struct OperationBase : public TypedTask<T>
+    template <class T>
+    struct BlockedOperationBase : public TypedTask<T>
     {
-        OperationBase() 
+        virtual void Execute(ITask** next) final override
         {
-            m_step = &TDerived::Run;
-        }
-
-        virtual void Execute(Task** next) override
-        {
-            TDerived* ths = static_cast<TDerived*>(this);
-            auto result = (ths->*m_step)();
+            auto const result = Run();
             *next = result.Continuation;
         }
 
+        virtual TaskBlockingType GetBlockingType() final override
+        {
+            return TaskBlockingType::Blocked;
+        }
+
+        struct TaskExecutionResult;
+        // derived class should return via CompletedWithError or CompletedWithSuccess
+        // from realization of Run()
+        virtual TaskExecutionResult Run() noexcept = 0;
+
     protected:
+        struct TaskExecutionResult
+        {
+            ITask* const Continuation;
+        private:
+            TaskExecutionResult(ITask* continuation)
+                : Continuation(continuation)
+            {
+            }
+
+            // only BlockedOperationBase can create TaskExecutionResult
+            template <class V> friend struct BlockedOperationBase;
+        };
 
         TaskExecutionResult CompletedWithError(Error_t&& result) noexcept
         {
             auto next = this->SetResultAndGetContinuation(
                 TaskResultOrException<T>(std::make_exception_ptr(ErrorException(std::move(result)))));
 
-            return TaskExecutionResult(TaskExecutionResult::Completed, next);
+            return TaskExecutionResult(next);
         }
 
         TaskExecutionResult CompletedWithSuccess(T&& result)
@@ -300,26 +318,8 @@ namespace AO
             auto next = this->SetResultAndGetContinuation(
                 TaskResultOrException<T>(std::move(result)));
 
-            return TaskExecutionResult(TaskExecutionResult::Completed, next);
+            return TaskExecutionResult(next);
         }
-
-        TaskExecutionResult WaitForAsyncOperation(AsyncOperation* asyncOperation, TaskExecutionResult(TDerived::*nextStep)())
-        {
-            asyncOperation->SetTask(this);
-            m_step = nextStep;
-
-            auto hr = asyncOperation->Run();
-            if (FAILED(hr))
-            {
-                return CompletedWithError(std::move(hr));
-            }
-
-            return TaskExecutionResult(TaskExecutionResult::AsyncOperationRun, nullptr);
-        }
-
-    private:
-        TaskExecutionResult(TDerived::*m_step)();
-        std::promise<T> m_promiseMain;
     };
 
 	template <class T>
@@ -340,7 +340,7 @@ namespace AO
     template <typename T>
     void TaskPromiseType<T>::return_value(T v)
     {
-        auto continuation = m_task->SetResultAndGetContinuation(
+        auto continuation = GetTask()->SetResultAndGetContinuation(
             TaskResultOrException<T>(std::move(v)));
 
 	    if (continuation)
@@ -348,7 +348,7 @@ namespace AO
             // not null continuation means some other task waits for 'm_task'
             // so 'm_task' is alive and we can make the following assigment
 
-            m_task->SetNextTask(continuation);
+            GetTask()->SetNextTask(continuation);
         }
     }
 }

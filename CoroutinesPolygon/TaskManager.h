@@ -2,7 +2,7 @@
 
 #include "Worker.h"
 #include "LockFreePtrQueue.h"
-#include "Task.h"
+#include "ITask.h"
 #include "ResultFuture.h"
 
 #include <memory>
@@ -41,26 +41,26 @@ namespace AO
         auto AddNewOperation(std::unique_ptr<T> operation) -> std::unique_ptr<ResultFuture<typename T::Result_t>>
         {
             auto future = operation->PrepareToRun(CompletionPort);
-            Task* taskPtr = operation.get();
+            ITask* taskPtr = operation.get();
             auto result = std::make_unique<ResultFuture<typename T::Result_t>>(std::move(future), std::move(operation) /*, shared_from_this()*/);
             AddExistingTaskToQueue(taskPtr);
             return result;
         }
 
-        Task* GetNextTask(Task* task, Task* newTask, Worker& worker);
+        ITask* GetNextTask(ITask* task, ITask* newTask, Worker& worker);
 
 	private:
         explicit TaskManager(unsigned threadNumber);
 
-	    Worker* GetWorkerOrAddTask(Task* task);
+	    Worker* GetWorkerOrAddTask(ITask* task);
 
-	    Task* GetTaskOrPushWorker(Worker* worker);
+	    ITask* GetTaskOrPushWorker(Worker* worker);
 
-	    void AddExistingTaskToQueue(Task* task) noexcept;
+	    void AddExistingTaskToQueue(ITask* task) noexcept;
 
     private:
-        LockFreePtrQueue<Task> m_taskQueue;
-        LockFreePtrQueue<Task> m_syncTaskQueue;
+        LockFreePtrQueue<ITask> m_taskQueue;
+        LockFreePtrQueue<ITask> m_syncTaskQueue;
 
         LockFreePtrQueue<Worker> m_freeWorkers;
         LockFreePtrQueue<Worker> m_syncFreeWorkers;

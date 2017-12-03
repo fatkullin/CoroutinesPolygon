@@ -1,5 +1,7 @@
 ﻿#pragma once
-#include "Task.h"
+#include "ITask.h"
+#include "BlockedOperationBase.h"
+#include <experimental/coroutine>
 
 namespace AO
 {
@@ -7,27 +9,70 @@ namespace AO
         : public OVERLAPPED
     {
     public:
-        DWORD LpNumberOfBytes;
-        ULONG_PTR LpCompletionKey;
+        DWORD NumberOfBytes;
+        ULONG_PTR CompletionKey;
 
-        virtual ~AsyncOperation() = default;
-
-        Task* GetAttahedTask(DWORD lpNumberOfBytes,
-            ULONG_PTR lpCompletionKey)
+    public:
+        // this method is executed when operation has been completed 
+        ITask* GetAttahedTask(DWORD lpNumberOfBytes, ULONG_PTR lpCompletionKey)
         {
-            LpNumberOfBytes = lpNumberOfBytes;
-            LpCompletionKey = lpCompletionKey;
+            NumberOfBytes = lpNumberOfBytes;
+            CompletionKey = lpCompletionKey;
             return m_task;
         }
 
-        void SetTask(Task* task) noexcept
+        virtual ~AsyncOperation() = default;
+        virtual HRESULT Run() noexcept = 0;
+
+    protected:
+        // used by CoroAsyncOperation
+        void SetTask(ITask* task) noexcept
         {
             m_task = task;
         }
 
-        virtual HRESULT Run() noexcept = 0;
+    private:
+        AO::ITask* m_task;
+    };
+
+    template <class T>
+    struct CoroAsyncOperation : public AsyncOperation
+    {
+        constexpr bool await_ready() const noexcept
+        {
+            return false;
+        }
+
+        template<class TOuter>
+        bool await_suspend(std::experimental::coroutine_handle<TaskPromiseType<TOuter>> awaiter) noexcept
+        {
+            TaskPromiseType<TOuter>& taskPromise = awaiter.promise();
+
+            SetTask(taskPromise.GetTask());
+
+            auto hr = Run();
+            if (FAILED(hr))
+            {
+                m_error = hr;
+                return false;
+            }
+
+            return true;
+        }
+
+        T await_resume()
+        {
+            if (FAILED(m_error))
+            {
+                throw ErrorException(std::move(m_error));
+            }
+
+            return GetResult();
+        }
+
+        virtual T GetResult() = 0;
 
     private:
-        AO::Task* m_task;
+        HRESULT m_error = S_OK;
     };
 }

@@ -10,7 +10,7 @@ namespace AO
         TaskSet = false;
     }
 
-    void SleepTask::SetTask(Task* task)
+    void SleepTask::SetTask(ITask* task)
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         NextTask = task;
@@ -18,7 +18,7 @@ namespace AO
         m_cv.notify_all();
     }
 
-    Task* SleepTask::WaitForTask()
+    ITask* SleepTask::WaitForTask()
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         while (!Stop && !TaskSet)

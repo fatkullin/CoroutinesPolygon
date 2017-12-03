@@ -6,7 +6,7 @@
 
 namespace AO
 {
-    static bool AppropriateTaskType(Task* task, const Worker& worker)
+    static bool AppropriateTaskType(ITask* task, const Worker& worker)
     {
         WorkerType const workerType = worker.m_type;
         auto const taskType = task->GetBlockingType();
@@ -64,10 +64,10 @@ namespace AO
             sleepTask->Cancel();
     }
 
-    // the 'task' born 'newTask' so find strategy to run each 
+    // the 'task' born 'newTask' so find strategy to run each .
     // oldTask - is old task that is ready to be continued on worker
-    // newTask - is the task that born by task
-    Task* TaskManager::GetNextTask(Task* task, Task* newTask, Worker& worker)
+    // newTask - is the task that was born by task
+    ITask* TaskManager::GetNextTask(ITask* task, ITask* newTask, Worker& worker)
     {
         // TODO: replace logic to separate class
 
@@ -123,7 +123,7 @@ namespace AO
         }
     }
 
-    Worker* TaskManager::GetWorkerOrAddTask(Task* task)
+    Worker* TaskManager::GetWorkerOrAddTask(ITask* task)
     {
         auto const type = task->GetBlockingType();
         auto& workerStack = type == TaskBlockingType::Blocked ? m_syncFreeWorkers : m_freeWorkers;
@@ -145,7 +145,7 @@ namespace AO
         }
     }
 
-    Task* TaskManager::GetTaskOrPushWorker(Worker* worker)
+    ITask* TaskManager::GetTaskOrPushWorker(Worker* worker)
     {
         WorkerType type = worker->m_type;
         
@@ -173,7 +173,7 @@ namespace AO
     // assume function is noexcept
     // otherwise task will never end
     // TODO: to finish task if exception
-    void TaskManager::AddExistingTaskToQueue(Task* task) noexcept
+    void TaskManager::AddExistingTaskToQueue(ITask* task) noexcept
     {
         auto worker = GetWorkerOrAddTask(task);
         if (worker)

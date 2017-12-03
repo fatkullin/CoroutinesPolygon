@@ -1,14 +1,15 @@
 ﻿#include "stdafx.h"
 #include "AsyncWaitInitialWorkerTask.h"
-#include "MyOperation.h"
+#include "AsyncOperation.h"
 
 namespace AO
 {
-    AsyncWaitTask::AsyncWaitTask(HANDLE completionPort): m_completionPort(completionPort)
+    AsyncWaitTask::AsyncWaitTask(HANDLE completionPort)
+        : m_completionPort(completionPort)
     {
     }
 
-    Task* AsyncWaitTask::WaitForTask()
+    ITask* AsyncWaitTask::WaitForTask()
     {
         //BOOL WINAPI GetQueuedCompletionStatus(
         //    _In_  HANDLE       CompletionPort,
@@ -36,10 +37,9 @@ namespace AO
         return operation->GetAttahedTask(lpNumberOfBytes, lpCompletionKey);
     }
 
-    void AsyncWaitTask::SetTask(Task* task)
+    void AsyncWaitTask::SetTask(ITask* task)
     {
         // async waiter wait for task from iocp
         _ASSERTE(task == nullptr);
-        Cancel();
     }
 }

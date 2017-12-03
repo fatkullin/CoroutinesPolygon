@@ -36,9 +36,6 @@
     <ClInclude Include="LockFreePtrQueue.h">
       <Filter>TaskManager</Filter>
     </ClInclude>
-    <ClInclude Include="Task.h">
-      <Filter>TaskManager</Filter>
-    </ClInclude>
     <ClInclude Include="InitialWorkerTask.h">
       <Filter>TaskManager</Filter>
     </ClInclude>
@@ -52,9 +49,6 @@
       <Filter>TaskManager</Filter>
     </ClInclude>
     <ClInclude Include="MyOperation.h">
-      <Filter>AbstractOperation</Filter>
-    </ClInclude>
-    <ClInclude Include="OperationBase.h">
       <Filter>AbstractOperation</Filter>
     </ClInclude>
     <ClInclude Include="OpenFileOperation.h">
@@ -71,6 +65,12 @@
     </ClInclude>
     <ClInclude Include="TypedTaskCoroTraits.h">
       <Filter>AbstractOperation</Filter>
+    </ClInclude>
+    <ClInclude Include="BlockedOperationBase.h">
+      <Filter>AbstractOperation</Filter>
+    </ClInclude>
+    <ClInclude Include="ITask.h">
+      <Filter>TaskManager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -89,16 +89,10 @@
     <ClCompile Include="LockFreePtrQueue.cpp">
       <Filter>TaskManager</Filter>
     </ClCompile>
-    <ClCompile Include="Task.cpp">
-      <Filter>TaskManager</Filter>
-    </ClCompile>
     <ClCompile Include="SleepInitialWorkerTask.cpp">
       <Filter>TaskManager</Filter>
     </ClCompile>
     <ClCompile Include="AsyncWaitInitialWorkerTask.cpp">
-      <Filter>TaskManager</Filter>
-    </ClCompile>
-    <ClCompile Include="AsyncOperation.cpp">
       <Filter>TaskManager</Filter>
     </ClCompile>
     <ClCompile Include="MyOperation.cpp">
@@ -107,9 +101,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="OperationBase.cpp">
-      <Filter>AbstractOperation</Filter>
-    </ClCompile>
     <ClCompile Include="OpenFileOperation.cpp">
       <Filter>AbstractOperation</Filter>
     </ClCompile>
@@ -117,6 +108,9 @@
       <Filter>AbstractOperation</Filter>
     </ClCompile>
     <ClCompile Include="File.cpp">
+      <Filter>AbstractOperation</Filter>
+    </ClCompile>
+    <ClCompile Include="BlockedOperationBase.cpp">
       <Filter>AbstractOperation</Filter>
     </ClCompile>
   </ItemGroup>

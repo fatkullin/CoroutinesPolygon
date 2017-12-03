@@ -9,7 +9,7 @@ namespace AO
     public:
         explicit AsyncWaitTask(HANDLE completionPort);
 
-        virtual Task* WaitForTask() override;
+        virtual ITask* WaitForTask() override;
 
         void Cancel() override
         {
@@ -17,7 +17,7 @@ namespace AO
             // cannot be cancelled
         }
 
-        virtual void SetTask(Task* task) override;
+        virtual void SetTask(ITask* task) override;
     private:
         HANDLE m_completionPort;
     };

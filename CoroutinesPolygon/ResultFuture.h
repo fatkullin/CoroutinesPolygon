@@ -1,14 +1,11 @@
 ﻿#pragma once
 
-//#include "TaskFuture.h"
 #include <experimental/coroutine>
 #include "TypedTaskCoroTraits.h"
 
 namespace AO
 {
-
-
-	struct AwaiterTask : Task
+	struct AwaiterTask : ITask
 	{
 		AwaiterTask(std::experimental::coroutine_handle<> awaiter)
 			: m_awaiter(awaiter)
@@ -16,7 +13,7 @@ namespace AO
 
 		}
 
-		void Execute(Task**) override
+		void Execute(ITask**) override
 		{
 			m_awaiter.resume();
 		}
@@ -30,8 +27,6 @@ namespace AO
 		std::experimental::coroutine_handle<> m_awaiter;
 	};
 
-
-
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
 	template <class T>
@@ -39,7 +34,7 @@ namespace AO
 	{
 	public:
 		ResultFuture(std::future<void> result, std::unique_ptr<TypedTask<T>> task)
-			: Result(std::move(result))
+			: m_futureAboutCompletion(std::move(result))
             , m_task(std::move(task))
 		{
 
@@ -47,13 +42,13 @@ namespace AO
 
 		T get()
 		{
-			Result.wait();
+			m_futureAboutCompletion.wait();
             return std::move(m_task->GetResult()->Get());
 		}
 		
         ~ResultFuture()
 		{
-            Result.wait();
+            m_futureAboutCompletion.wait();
 		}
 
 		constexpr bool await_ready() const noexcept
@@ -62,7 +57,7 @@ namespace AO
 		}
 
 		// return true if continuation has been set
-		constexpr bool await_suspend(std::experimental::coroutine_handle<> awaiter) noexcept
+		bool await_suspend(std::experimental::coroutine_handle<> awaiter) noexcept
 		{
 			m_awaiter = awaiter;
 
@@ -75,12 +70,9 @@ namespace AO
             return std::move(m_task->GetResult()->Get());
 		}
 
-		//std::unique_ptr<Future> TaskFuture;
-		std::future<void> Result;
-
-		std::unique_ptr<AwaiterTask> m_awaiterTask;
-
 	private:
+		std::unique_ptr<AwaiterTask> m_awaiterTask;
+		std::future<void> m_futureAboutCompletion;
 		std::experimental::coroutine_handle<> m_awaiter;
         std::unique_ptr<TypedTask<T>> m_task;
 	};

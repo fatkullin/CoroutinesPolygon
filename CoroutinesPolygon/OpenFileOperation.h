@@ -1,21 +1,19 @@
 ﻿#pragma once
-#include "OperationBase.h"
-#include "Task.h"
+#include "BlockedOperationBase.h"
+#include "ITask.h"
 #include <string>
 #include "File.h"
 
 namespace AO
 {
-    struct OpenFileOperation : OperationBase<OpenFileOperation, File>
+    struct OpenFileOperation : BlockedOperationBase<File>
     {
         OpenFileOperation(std::wstring path)
             : m_path(move(path))
         {
         }
 
-        virtual AO::TaskBlockingType GetBlockingType() override;
-
-        AO::TaskExecutionResult Run() noexcept;
+        virtual TaskExecutionResult Run() noexcept;
 
         //void Cancel() override
         //{

@@ -24,9 +24,6 @@ namespace AO
     private:
         TaskManager* m_taskManager;
         int m_tag;
-        std::mutex m_mutex;
-        std::condition_variable m_cv;
-        bool m_threadStarted;
         std::thread m_thread;
     };
 }

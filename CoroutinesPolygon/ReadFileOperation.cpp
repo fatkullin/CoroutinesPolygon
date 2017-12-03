@@ -3,15 +3,16 @@
 
 namespace AO
 {
-    ReadFileOperation::ReadFileResult::
-    ReadFileResult(HANDLE fileHandle, PLARGE_INTEGER offset): m_fileHandle(fileHandle)
+    ReadFileOperation::ReadFileOperation(HANDLE fileHandle, PLARGE_INTEGER offset)
+        : m_fileHandle(fileHandle)
     {
         Internal = 0;
         InternalHigh = 0;
         Offset = 0;
         OffsetHigh = 0;
         hEvent = NULL;
-        Data = VirtualAlloc(NULL, BufferSize, MEM_COMMIT, PAGE_READWRITE);;
+
+        m_data.resize(BufferSize);
 
         if (offset != NULL)
         {
@@ -20,44 +21,17 @@ namespace AO
         }
     }
 
-    ReadFileOperation::ReadFileResult::~ReadFileResult()
-    {
-        if (Data != NULL)
-            VirtualFree(Data, 0, MEM_RELEASE);
-    }
-
-    HRESULT ReadFileOperation::ReadFileResult::Run() noexcept
-    {
-        return ReadFile(m_fileHandle, Data, BufferSize, nullptr, this);
-    }
-
-    ReadFileOperation::ReadFileOperation(File&& file)
-        : m_file(std::move(file))
+    ReadFileOperation::~ReadFileOperation()
     {
     }
 
-    HANDLE ReadFileOperation::GetHandle() const
+    HRESULT ReadFileOperation::Run() noexcept
     {
-        return HANDLE(m_file.m_file);
+        return ReadFile(m_fileHandle, m_data.data(), BufferSize, nullptr, this);
     }
 
-    AO::TaskExecutionResult ReadFileOperation::Run() noexcept
+    AO::Data ReadFileOperation::GetResult()
     {
-        m_asyncOperation = std::make_unique<ReadFileResult>(GetHandle(), nullptr);
-
-        return WaitForAsyncOperation(m_asyncOperation.get(), &ReadFileOperation::OnCompleted);
+        return std::move(m_data);
     }
-
-    AO::TaskExecutionResult ReadFileOperation::OnCompleted()
-    {
-        // TODO: unnecessary copying of m_asyncOperation->Data
-        return CompletedWithSuccess(Data((unsigned char*)(m_asyncOperation->Data),
-                                         (unsigned char*)m_asyncOperation->Data + m_asyncOperation->BufferSize));
-    }
-
-    //void ReadFileOperation::Cancel()
-    //{
-    //    HRESULT res = CancelIoEx(GetHandle(), m_asyncOperation.get());
-    //    // TODO: handle error
-    //}
 }

@@ -2,12 +2,12 @@
 
 namespace AO
 {
-    class Task;
+    class ITask;
 
     class TaskExecutor
     {
     public:
-        static Task* Execute(Task*& task);
+        static ITask* Execute(ITask*& task);
     };
 
 }

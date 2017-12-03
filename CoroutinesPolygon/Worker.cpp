@@ -12,12 +12,8 @@ namespace AO
         , m_initialTask(initialTask)
         , m_taskManager(taskManager)
         , m_tag(tag)
-        , m_threadStarted(false)
         , m_thread([this]() { this->Run(); })
     {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        while (!m_threadStarted)
-            m_cv.wait(lock);
     }
 
     Worker::~Worker()
@@ -27,16 +23,10 @@ namespace AO
 
     void Worker::Run() noexcept
     {
-        {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            m_threadStarted = true;
-            m_cv.notify_one();
-        }
-
         while (m_initialTask)
         {
-            Task* task = nullptr;
-            Task* newTask = nullptr;
+            ITask* task = nullptr;
+            ITask* newTask = nullptr;
 
             task = m_initialTask->WaitForTask();
 
