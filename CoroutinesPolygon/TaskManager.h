@@ -40,12 +40,7 @@ namespace AO
         template<class T>
         auto AddNewOperation(std::unique_ptr<T> operation) -> std::unique_ptr<ResultFuture<typename T::Result_t>>
         {
-            // set context
-            operation->IoCompletionHandle = CompletionPort;
-
-            auto promise = std::make_unique<std::promise<void>>();
-            auto future = promise->get_future();
-            operation->SetPromise(std::move(promise));
+            auto future = operation->PrepareToRun(CompletionPort);
             Task* taskPtr = operation.get();
             auto result = std::make_unique<ResultFuture<typename T::Result_t>>(std::move(future), std::move(operation) /*, shared_from_this()*/);
             AddExistingTaskToQueue(taskPtr);

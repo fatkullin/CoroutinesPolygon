@@ -48,7 +48,7 @@ namespace AO
 		T get()
 		{
 			Result.wait();
-            return std::move(m_task->Result.Get());
+            return std::move(m_task->GetResult()->Get());
 		}
 		
         ~ResultFuture()
@@ -67,12 +67,12 @@ namespace AO
 			m_awaiter = awaiter;
 
 			m_awaiterTask = std::make_unique<AwaiterTask>(m_awaiter);
-            return  m_task->SetContinuation(m_awaiterTask.get());
+            return m_task->SetContinuation(m_awaiterTask.get());
 		}
 
 		T await_resume() noexcept
 		{
-            return std::move(m_task->Result.Get());
+            return std::move(m_task->GetResult()->Get());
 		}
 
 		//std::unique_ptr<Future> TaskFuture;
