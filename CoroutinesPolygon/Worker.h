@@ -6,12 +6,12 @@ namespace AO
 {
     enum class WorkerType;
     class TaskManager;
-    struct InitialTask;
+    struct ITaskProducer;
 
     class Worker
     {
     public:
-        Worker(WorkerType type, int tag, TaskManager* taskManager, InitialTask* initialTask);
+        Worker(WorkerType type, int tag, TaskManager* taskManager, ITaskProducer* initialTask);
         ~Worker();
 
         void Run() noexcept;
@@ -19,7 +19,7 @@ namespace AO
 
     public:
         std::atomic<WorkerType> m_type;
-        InitialTask* m_initialTask;
+        ITaskProducer* TaskProducer;
 
     private:
         TaskManager* m_taskManager;

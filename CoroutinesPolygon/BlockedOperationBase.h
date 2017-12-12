@@ -249,9 +249,9 @@ namespace AO
     {
         virtual void Execute(ITask** nextTask) final override
         {
-            NextTask = nullptr;
+            NextTask = nextTask;
+            *NextTask = nullptr;
             m_coroHandle.resume();
-            *nextTask = NextTask;
         }
 
         // public morozov
@@ -265,11 +265,11 @@ namespace AO
 
         void SetNextTask(ITask* next)
         {
-            NextTask = next;
+            *NextTask = next;
         }
 
     private:
-        ITask* NextTask = nullptr;							// childTask or continuation
+        ITask** NextTask = nullptr;							// childTask or continuation
     };
 
     template <class T>
@@ -281,7 +281,7 @@ namespace AO
             *next = result.Continuation;
         }
 
-        virtual TaskBlockingType GetBlockingType() final override
+        virtual TaskBlockingType GetBlockingType() override
         {
             return TaskBlockingType::Blocked;
         }

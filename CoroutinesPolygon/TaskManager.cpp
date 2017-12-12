@@ -17,14 +17,17 @@ namespace AO
         return taskType == TaskBlockingType::Blocked;
     }
 
-    TaskManager::TaskManager(unsigned threadNumber)
+    TaskManager::TaskManager(
+        unsigned asyncOperationThreadNumber,
+        unsigned blockedOperationThreadNumber,
+        unsigned ioCompletionThreadNumber)
     {
         // TODO: ErrorHandling
         CompletionPort = CreateIoCompletionPort(
-            INVALID_HANDLE_VALUE, nullptr, 0, threadNumber);
+            INVALID_HANDLE_VALUE, nullptr, 0, ioCompletionThreadNumber);
 
         int tag = 0;
-        for (auto i = 0; i < AsyncWaiterCount; ++i)
+        for (unsigned i = 0; i < ioCompletionThreadNumber; ++i)
         {
             auto task = std::make_unique<AsyncWaitTask>(CompletionPort);
             auto taskWorker = std::make_unique<Worker>(WorkerType::AsyncThreadPool, tag++, this, task.get());
@@ -32,7 +35,7 @@ namespace AO
             m_asyncTasks.emplace_back(std::move(task));
         }
 
-        for (unsigned i = 0; i < threadNumber; ++i)
+        for (unsigned i = 0; i < asyncOperationThreadNumber; ++i)
         {
             auto task = std::make_unique<SleepTask>();
             auto taskWorker = std::make_unique<Worker>(WorkerType::TaskThreadPool, tag++, this, task.get());
@@ -41,7 +44,7 @@ namespace AO
             m_sleepTasks.emplace_back(std::move(task));
         }
 
-        for (unsigned i = 0; i < threadNumber; ++i)
+        for (unsigned i = 0; i < blockedOperationThreadNumber; ++i)
         {
             auto task = std::make_unique<SleepTask>();
             auto taskWorker = std::make_unique<Worker>(WorkerType::SynchroThreadPool, tag++, this, task.get());
@@ -54,7 +57,7 @@ namespace AO
     TaskManager::~TaskManager()
     {
         for (auto& worker : m_workers)
-            worker->m_initialTask = nullptr;
+            worker->TaskProducer = nullptr;
 
         if (CompletionPort)
             auto result = CloseHandle(CompletionPort);
@@ -64,10 +67,10 @@ namespace AO
             sleepTask->Cancel();
     }
 
-    // the 'task' born 'newTask' so find strategy to run each .
-    // oldTask - is old task that is ready to be continued on worker
-    // newTask - is the task that was born by task
-    ITask* TaskManager::GetNextTask(ITask* task, ITask* newTask, Worker& worker)
+    // 'producedTask' is task received from worker TaskProducer 
+    // or from just executed task (for ex. as continuation).
+    // TaskManager should find strategy which task should be run on worker next time.
+    ITask* TaskManager::GetNextTask(ITask* producedTask, Worker& worker)
     {
         // TODO: replace logic to separate class
 
@@ -92,35 +95,22 @@ namespace AO
             //    return task;
             //}
 
-            AddExistingTaskToQueue(task);
+            AddExistingTaskToQueue(producedTask);
             return nullptr;
         }
 
-        if (task != nullptr)
+        if (producedTask != nullptr)
         {
-            if (newTask != nullptr)
-            {
-                AddExistingTaskToQueue(newTask);
-            }
-            return task;
+            if (AppropriateTaskType(producedTask, worker))
+                return producedTask;
+
+            AddExistingTaskToQueue(producedTask);
         }
 
-        else
-        // task == nullptr
-        {
-            if (newTask != nullptr)
-            {
-                if (AppropriateTaskType(newTask, worker))
-                    return newTask;
+        auto const task = GetTaskOrPushWorker(&worker);
 
-                AddExistingTaskToQueue(newTask);
-            }
-
-            task = GetTaskOrPushWorker(&worker);
-
-            // if task == nullptr - worker returns to GetInitialTask
-            return task;
-        }
+        // if task == nullptr - worker returns to GetInitialTask
+        return task;
     }
 
     Worker* TaskManager::GetWorkerOrAddTask(ITask* task)
@@ -175,8 +165,8 @@ namespace AO
     // TODO: to finish task if exception
     void TaskManager::AddExistingTaskToQueue(ITask* task) noexcept
     {
-        auto worker = GetWorkerOrAddTask(task);
+        auto const worker = GetWorkerOrAddTask(task);
         if (worker)
-            worker->m_initialTask->SetTask(task);
+            static_cast<ITaskProducerInternal*>(worker->TaskProducer)->SetTask(task);
     }
 }

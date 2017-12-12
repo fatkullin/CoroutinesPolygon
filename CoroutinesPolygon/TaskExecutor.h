@@ -7,7 +7,7 @@ namespace AO
     class TaskExecutor
     {
     public:
-        static ITask* Execute(ITask*& task);
+        static ITask* Execute(ITask* task);
     };
 
 }

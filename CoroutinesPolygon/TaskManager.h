@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <mutex>
+#include "InitialWorkerTask.h"
 
 namespace AO
 {
@@ -23,15 +24,16 @@ namespace AO
         : public std::enable_shared_from_this<TaskManager>
 	{
 	public:
-        static const unsigned AsyncWaiterCount = 1;
-
-	public:
         HANDLE CompletionPort;
 
     public:
-        static std::shared_ptr<TaskManager> Create(unsigned threadNumber)
+        static std::shared_ptr<TaskManager> Create(
+            unsigned asyncOperationThreadNumber,
+            unsigned blockedOperationThreadNumber,
+            unsigned ioCompletionThreadNumber = 1)
         {
-            return std::shared_ptr<TaskManager>(new TaskManager(threadNumber));
+            return std::shared_ptr<TaskManager>(new TaskManager(asyncOperationThreadNumber,
+                blockedOperationThreadNumber, ioCompletionThreadNumber));
         }
 
 	public:
@@ -47,10 +49,13 @@ namespace AO
             return result;
         }
 
-        ITask* GetNextTask(ITask* task, ITask* newTask, Worker& worker);
+        ITask* GetNextTask(ITask* newTask, Worker& worker);
 
 	private:
-        explicit TaskManager(unsigned threadNumber);
+        explicit TaskManager(
+            unsigned asyncOperationThreadNumber,
+            unsigned blockedOperationThreadNumber,
+            unsigned ioCompletionThreadNumber);
 
 	    Worker* GetWorkerOrAddTask(ITask* task);
 
@@ -66,8 +71,8 @@ namespace AO
         LockFreePtrQueue<Worker> m_syncFreeWorkers;
 
         std::vector<std::unique_ptr<Worker>> m_workers;
-        std::vector<std::unique_ptr<InitialTask>> m_asyncTasks;
-        std::vector<std::unique_ptr<InitialTask>> m_sleepTasks;
+        std::vector<std::unique_ptr<ITaskProducerInternal>> m_asyncTasks;
+        std::vector<std::unique_ptr<ITaskProducerInternal>> m_sleepTasks;
 
         std::mutex m_mutex;
 

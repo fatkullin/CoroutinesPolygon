@@ -4,7 +4,7 @@
 namespace AO
 {
     class AsyncWaitTask
-        : public InitialTask
+        : public ITaskProducerInternal
     {
     public:
         explicit AsyncWaitTask(HANDLE completionPort);
@@ -13,11 +13,13 @@ namespace AO
 
         void Cancel() override
         {
-            // we should wait all async operation so this task
-            // cannot be cancelled
+            throw std::runtime_error("Cannot cancel async task producer");
         }
 
-        virtual void SetTask(ITask* task) override;
+        virtual void SetTask(ITask* task) override
+        {
+            throw std::runtime_error("Cannot set task for async task producer");
+        }
     private:
         HANDLE m_completionPort;
     };

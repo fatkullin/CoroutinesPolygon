@@ -36,10 +36,4 @@ namespace AO
         auto operation = static_cast<AsyncOperation*>(lpOverlapped);
         return operation->GetAttahedTask(lpNumberOfBytes, lpCompletionKey);
     }
-
-    void AsyncWaitTask::SetTask(ITask* task)
-    {
-        // async waiter wait for task from iocp
-        _ASSERTE(task == nullptr);
-    }
 }

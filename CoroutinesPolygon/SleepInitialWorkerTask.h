@@ -6,7 +6,7 @@ namespace AO
 {
     class TaskManager;
 
-    class SleepTask : public InitialTask
+    class SleepTask : public ITaskProducerInternal
     {
     public:
         std::condition_variable m_cv;

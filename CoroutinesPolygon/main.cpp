@@ -20,24 +20,33 @@ FutureType GetFuture(std::shared_ptr<AO::TaskManager> taskManager)
 
 int main()
 {
-	auto const taskManager = AO::TaskManager::Create(1);
+	auto const taskManager = AO::TaskManager::Create(4, 40, 1);
 	int r = 0;
 
-	for (int j = 0; j < 100; ++j)
+    auto time = std::chrono::steady_clock::now();
+
+	for (int j = 0; j < 1; ++j)
 	{
+        auto const iMax = 200000;
 		std::vector<FutureType> vf;
-		for (int i = 0; i < 100; ++i)
+        vf.reserve(iMax);
+
+		for (int i = 0; i <iMax; ++i)
 		{
 			vf.emplace_back(GetFuture(taskManager));
 		}
 
-		for (int i = 0; i < 100; ++i)
+		for (int i = 0; i < iMax; ++i)
 		{
 			auto const res = vf[i]->get();
 			r += res;
 		}
 	}
+
+    auto diff = std::chrono::steady_clock::now() - time;
+
 	std::cout << r << " " << "\n";
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count() << " ms" << "\n";
     return 0;
 }
 

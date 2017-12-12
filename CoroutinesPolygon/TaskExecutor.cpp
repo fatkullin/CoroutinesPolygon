@@ -5,12 +5,11 @@
 
 namespace AO
 {
-    ITask* TaskExecutor::Execute(ITask*& task)
+    ITask* TaskExecutor::Execute(ITask* task)
     {
 		ITask* nextTask = nullptr;
         task->Execute(&nextTask);
 
-		task = nullptr;
 		return nextTask;
     }
 

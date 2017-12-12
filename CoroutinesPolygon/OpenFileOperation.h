@@ -13,6 +13,12 @@ namespace AO
         {
         }
 
+        virtual TaskBlockingType GetBlockingType() override
+        {
+            return TaskBlockingType::Blocked;
+        }
+
+
         virtual TaskExecutionResult Run() noexcept;
 
         //void Cancel() override

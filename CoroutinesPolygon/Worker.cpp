@@ -7,9 +7,9 @@
 
 namespace AO
 {
-    Worker::Worker(WorkerType type, int tag, TaskManager* taskManager, InitialTask* initialTask)
+    Worker::Worker(WorkerType type, int tag, TaskManager* taskManager, ITaskProducer* initialTask)
         : m_type(type)
-        , m_initialTask(initialTask)
+        , TaskProducer(initialTask)
         , m_taskManager(taskManager)
         , m_tag(tag)
         , m_thread([this]() { this->Run(); })
@@ -23,22 +23,21 @@ namespace AO
 
     void Worker::Run() noexcept
     {
-        while (m_initialTask)
+        while (TaskProducer)
         {
-            ITask* task = nullptr;
-            ITask* newTask = nullptr;
-
-            task = m_initialTask->WaitForTask();
-
+            auto task = TaskProducer->WaitForTask();
+            
+            // TaskManager can change TaskProducer, so old producer returns null
+            // then worker waits on new producer
             if (!task)
                 continue;
 
-            task = m_taskManager->GetNextTask(task, nullptr, *this);
+            task = m_taskManager->GetNextTask(task, *this);
 
             while (task)
             {
-                newTask = TaskExecutor::Execute(task);
-                task = m_taskManager->GetNextTask(task, newTask, *this);
+                auto const newTask = TaskExecutor::Execute(task);
+                task = m_taskManager->GetNextTask(newTask, *this);
             }
         }
     }
